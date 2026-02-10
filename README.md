@@ -1,1 +1,14 @@
 # online-supermarket
+online-supermarket/
+  app/
+    layout.js
+    page.js
+    cart/page.js
+    orders/page.js
+  components/
+    ProductCard.js
+  lib/
+    store.js
+  public/
+  package.json
+  next.config.js
