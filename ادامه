@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>فروشگاه آنلاین سریع</title>
+  <style>
+    body{margin:0;font-family:Tahoma;background:#f5f5f5;color:#111}
+    .header{position:sticky;top:0;background:#fff;border-bottom:1px solid #ccc;padding:10px;display:flex;align-items:center;justify-content:space-between;z-index:10}
+    .header .logo{font-weight:900;color:#ef4056}
+    .search{flex:1;margin:0 10px;padding:8px 12px;border-radius:12px;border:1px solid #ccc}
+    .btn{padding:8px 12px;border:none;border-radius:12px;cursor:pointer;font-weight:900}
+    .btnRed{background:#ef4056;color:#fff}
+    .layout{display:grid;grid-template-columns:250px 1fr;gap:12px;padding:12px}
+    @media(max-width:800px){.layout{grid-template-columns:1fr}}
+    .card{background:#fff;padding:12px;border-radius:16px;border:1px solid #ccc;margin-bottom:12px}
+    .catBtn{padding:6px 10px;margin:4px;border:1px solid #ccc;border-radius:999px;cursor:pointer}
+    .catBtn.active{border-color:#ef4056;color:#ef4056;font-weight:900}
+    .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+    @media(max-width:800px){.grid{grid-template-columns:repeat(2,1fr)}} 
+    @media(max-width:500px){.grid{grid-template-columns:1fr}}
+    .pCard{background:#fff;border-radius:16px;padding:10px;display:flex;flex-direction:column;box-shadow:0 5px 15px rgba(0,0,0,.05)}
+    .pCard img{width:100%;height:150px;object-fit:cover;border-radius:12px;margin-bottom:8px}
+    .pName{font-weight:900;font-size:14px;margin-bottom:4px}
+    .pPrice{font-weight:900;margin-top:auto;color:#ef4056}
+    .pActions{display:flex;gap:6px;margin-top:8px}
+    .modalBg{position:fixed;inset:0;background:rgba(0,0,0,.4);display:none;align-items:center;justify-content:center;z-index:50}
+    .modal{background:#fff;border-radius:20px;max-width:600px;width:100%;padding:12px;position:relative}
+    .closeX{position:absolute;top:10px;left:10px;background:#fff;border:1px solid #ccc;border-radius:999px;width:36px;height:36px;font-size:18px;cursor:pointer}
+    .drawerBg{position:fixed;inset:0;background:rgba(0,0,0,.35);display:none;z-index:60}
+    .drawer{position:fixed;top:0;bottom:0;right:0;width:min(400px,90vw);background:#fff;border-left:1px solid #ccc;transform:translateX(110%);transition:.25s;display:flex;flex-direction:column;z-index:70}
+    .drawer.open{transform:translateX(0)}
+    .drawerHead{padding:12px;border-bottom:1px solid #ccc;display:flex;justify-content:space-between;align-items:center}
+    .drawerBody{flex:1;overflow:auto;padding:12px}
+    .cartItem{display:flex;gap:10px;border:1px solid #ccc;border-radius:14px;padding:8px;margin-bottom:8px}
+    .cartThumb{width:64px;height:64px;background:#eee;border-radius:12px;overflow:hidden;flex:0 0 auto}
+    .cartThumb img{width:100%;height:100%;object-fit:cover}
+    .cartInfo{flex:1}
+    .qtyRow{display:flex;align-items:center;gap:6px;margin-top:6px}
+    .qtyBtn{width:30px;height:30px;border-radius:10px;border:1px solid #ccc;background:#fff;cursor:pointer}
+    .drawerFoot{padding:12px;border-top:1px solid #ccc}
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <div class="logo">DK</div>
+  <input id="search" class="search" placeholder="جستجو..." oninput="render()">
+  <button class="btn btnRed" onclick="openCart()">سبد خرید <span id="cartCount">0</span></button>
+</div>
+
+<div class="layout">
+  <div>
+    <div class="card">
+      <div style="font-weight:900;margin-bottom:6px">دسته‌بندی‌ها</div>
+      <div id="cats"></div>
+    </div>
+  </div>
+
+  <div>
+    <div class="grid" id="grid"></div>
+  </div>
+</div>
+
+<div class="modalBg" id="modalBg" onclick="closeModal()">
+  <div class="modal" onclick="event.stopPropagation()">
+    <button class="closeX" onclick="hideModal()">✕</button>
+    <div id="mName" style="font-weight:900;font-size:16px;margin-bottom:6px"></div>
+    <img id="mImg" src="https://via.placeholder.com/400x250" style="width:100%;height:200px;object-fit:cover;border-radius:12px;margin-bottom:6px">
+    <div id="mPrice" style="font-weight:900;color:#ef4056;margin-bottom:6px"></div>
+    <button class="btn btnRed btnFull" onclick="modalAddToCart()">افزودن به سبد خرید</button>
+  </div>
+</div>
+
+<div class="drawerBg" id="drawerBg" onclick="closeCart()"></div>
+<div class="drawer" id="drawer">
+  <div class="drawerHead">
+    <div style="font-weight:900">سبد خرید</div>
+    <button class="btn btnWhite" onclick="closeCart()">بستن</button>
+  </div>
+  <div class="drawerBody" id="cartList"></div>
+  <div class="drawerFoot">
+    <div style="display:flex;justify-content:space-between;font-weight:900;margin-bottom:6px">
+      <span>مجموع</span>
+      <span id="total">0 تومان</span>
+    </div>
+    <button class="btn btnRed btnFull" onclick="submitOrder()">ثبت سفارش واتساپ</button>
+  </div>
+</div>
+
+<script>
+const WHATSAPP_NUMBER = "989000000000"; // شماره خودت
+const PRODUCTS=[
+  {id:1,name:"برنج ایرانی",price:125000,image:"https://via.placeholder.com/400x250"},
+  {id:2,name:"روغن ۱.۵ لیتری",price:18500,image:"https://via.placeholder.com/400x250"},
+  {id:3,name:"خرما",price:21000,image:"https://via.placeholder.com/400x250"},
+  {id:4,name:"رب گوجه",price:9800,image:"https://via.placeholder.com/400x250"},
+];
+
+let cart=[]; let activeCategory="همه"; let modalProductId=null;
+
+function categories(){return ["همه","غذا","نوشیدنی","خشکبار"]}
+function renderCats(){
+  const box=document.getElementById("cats"); box.innerHTML="";
+  categories().forEach(c=>{
+    const btn=document.createElement("button");
+    btn.className="catBtn"+(c===activeCategory?" active":"");
+    btn.innerText=c; btn.onclick=()=>{activeCategory=c;renderCats();render();};
+    box.appendChild(btn);
+  });
+}
+
+function render(){
+  const grid=document.getElementById("grid"); grid.innerHTML="";
+  const q=(document.getElementById("search").value||"").toLowerCase();
+  const list=PRODUCTS.filter(p=>p.name.toLowerCase().includes(q));
+  list.forEach(p=>{
+    const div=document.createElement("div"); div.className="pCard";
+    div.innerHTML=`<img src="${p.image}"><div class="pName">${p.name}</div><div class="pPrice">${p.price.toLocaleString()} تومان</div>
+    <div class="pActions"><button class="btn btnWhite btnFull">مشاهده</button><button class="btn btnRed">+</button></div>`;
+    div.querySelectorAll("button")[0].onclick=()=>showModal(p.id);
+    div.querySelectorAll("button")[1].onclick=()=>addToCart(p.id);
+    grid.appendChild(div);
+  });
+  updateCartUI();
+  renderCart();
+}
+
+function showModal(id){modalProductId=id;const p=PRODUCTS.find(x=>x.id===id);document.getElementById("mName").innerText=p.name;document.getElementById("mPrice").innerText=p.price.toLocaleString()+" تومان";document.getElementById("mImg").src=p.image;document.getElementById("modalBg").style.display="flex";}
+function hideModal(){document.getElementById("modalBg").style.display="none";} function modalAddToCart(){if(modalProductId)addToCart(modalProductId);}
+function addToCart(id){const p=PRODUCTS.find(x=>x.id===id);const x=cart.find(i=>i.id===id);if(x)x.qty++;else cart.push({id:p.id,name:p.name,price:p.price,image:p.image,qty:1});updateCartUI();renderCart();}
+function updateCartUI(){document.getElementById("cartCount").innerText=cart.reduce((s,x)=>s+x.qty,0);document.getElementById("total").innerText=cart.reduce((s,x)=>s+x.price*x.qty,0).toLocaleString()+" تومان";}
+function openCart(){document.getElementById("drawerBg").style.display="block";document.getElementById("drawer").classList.add("open");renderCart();}
+function closeCart(){document.getElementById("drawerBg").style.display="none";document.getElementById("drawer").classList.remove("open");}
+function renderCart(){const box=document.getElementById("cartList");box.innerHTML="";if(cart.length===0){box.innerHTML="<div style='padding:10px'>سبد خرید خالی است</div>";return;}cart.forEach(i=>{const div=document.createElement("div");div.className="cartItem";div.innerHTML=`<div class="cartThumb"><img src="${i.image}"></div><div class="cartInfo"><div style="font-weight:900">${i.name}</div><div style="margin-top:4px">${i.price.toLocaleString()} تومان</div><div class="qtyRow"><button class="qtyBtn" onclick="decQty(${i.id})">-</button><span>تعداد: ${i.qty}</span><button class="qtyBtn" onclick="incQty(${i.id})">+</button></div></div>`;box.appendChild(div);});}
+function decQty(id){const x=cart.find(i=>i.id===id);if(!x)return;x.qty--;if(x.qty<=0)cart=cart.filter(i=>i.id!==id);updateCartUI();renderCart();}
+function incQty(id){const x=cart.find(i=>i.id===id);if(!x)return;x.qty++;updateCartUI();renderCart();}
+function submitOrder(){if(cart.length===0){alert("سبد خرید خالی است");return;}let msg=`سفارش جدید 🛒%0A%0A`;cart.forEach(x=>{msg+=`- ${x.name} × ${x.qty} = ${x.price*x.qty}%0A`;});window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${msg}`);}
+renderCats();render();
+</script>
+
+</body>
+</html>
